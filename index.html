@@ -2,6 +2,7 @@
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Centro de Distribuição 3D</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 <style>
 :root{--bg:#eef1f4;--fg:#1b2430;--card:#ffffffd9;--bd:#c9d1da;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a21;--fg:#e6ebf0;--card:#1e2731d9;--bd:#33404d}}
@@ -26,12 +27,23 @@ button:hover{border-color:#3b82f6}
 <div><i style="background:#22c55e"></i>Nível 1: picking/apanha (todas as ruas)</div>
 <div><i style="background:#f97316"></i>Expedição (5 docas)</div>
 <div><i style="background:#14b8a6"></i>Sala central (3,5 × 12 m)</div>
+<div style="margin-top:6px"><b>Status (Excel)</b></div>
+<div><i style="background:#E53935"></i>Ocupado</div><div><i style="background:#43A047"></i>Disponível</div>
+<div><i style="background:#FB8C00"></i>Reservado</div><div><i style="background:#212121"></i>Bloqueado</div>
+<div><i style="background:#9E9E9E"></i>Inativo</div><div id="cnt" style="font-size:11px;opacity:.8"></div>
 </div>
 <div id="bt" class="p">
 <button onclick="V(0.7,0.9,230,0,0,0)">Vista aérea</button>
 <button onclick="V(0,1.1,150,0,0,60)">Docas sul</button>
 <button onclick="V(0.3,1.45,50,-20,6,10)">Interno</button>
-<button onclick="toggleRoof()" id="rb">Mostrar telhado</button></div>
+<button onclick="toggleRoof()" id="rb">Mostrar telhado</button>
+<hr style="width:100%;border:0;border-top:1px solid var(--bd)">
+<button onclick="carregarDoExcel()">🔄 Atualizar do Excel</button>
+<label style="font-size:12px">Filtro status<br><select id="fs" onchange="aplicarDados(ULT)"><option value="">Todos</option><option>Ocupado</option><option>Disponível</option><option>Reservado</option><option>Bloqueado</option><option>Inativo</option></select></label>
+<label style="font-size:12px">Rua<br><select id="fr" onchange="aplicarDados(ULT)"><option value="">Todas</option></select></label>
+<label style="font-size:11px">Sem Excel? CSV:<br><input type="file" id="csv" accept=".csv,.txt" style="width:140px" onchange="lerCSV(this.files[0])"></label>
+</div>
+<div id="sel" class="p" style="right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));max-width:260px;display:none"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const R=new THREE.WebGLRenderer({antialias:true,alpha:true});R.setPixelRatio(Math.min(devicePixelRatio,2));document.body.prepend(R.domElement);
@@ -60,7 +72,6 @@ const rd=[...Array(9)].map((_,i)=>[-29.5+i*5,cm]),sd=[...Array(5)].map((_,i)=>[1
 [...rd,...sd].forEach(([x,c],i)=>{box(3.2,4.6,0.7,x,2.3,70,dm);
  if(i!==3&&i!==11){const t=new THREE.Group();box(2.8,3.6,14,0,2.4,0,tm,t);box(2.8,2.8,3,0,1.9,8.5,c,t);t.position.set(x,0,78);S.add(t)}});
 // apoio (escritórios, 2 pavimentos)
-
 // porta-paletes
 const LV=6,MD=2.7,TN=1.5*MD,halves=[],tun=[];{let z=39;[11,12,14].forEach((n,i)=>{halves.push([z-n*MD,z]);z-=n*MD;if(i<2){box(99,0.12,TN,0,0.09,z-TN/2,M(0xa78bfa));tun.push(z-TN/2);z-=TN}})}
 const cols=[{x:-49.075,w:1.35}];for(let b=0;b<13;b++)cols.push({x:(b-6)*7.107,w:2.7,cut:b===12});cols.push({x:49.075,w:1.35,cut:true});const NB=cols.length;
@@ -69,8 +80,7 @@ const PW=MD/2;
 const loads=new THREE.InstancedMesh(new THREE.BoxGeometry(1.1,1.7,1.15),M(0xffffff),20000);
 const ups=new THREE.InstancedMesh(new THREE.BoxGeometry(0.12,12.6,0.12),M(0x1d4ed8),NB*2*34*2);
 const o=new THREE.Object3D(),col=new THREE.Color();let bi=0,li=0,ui=0;
-function slotFill(za,zb,x,sides,k){const n=Math.round((zb-za)/PW);for(let s=0;s<n;s++){const zc=za+(s+0.5)*PW;sides.forEach(dx=>{o.scale.set(1,1,1);o.position.set(x+dx,0.3+k*2.4+(k===0?0.72:0.92),zc);o.updateMatrix();loads.setMatrixAt(li,o.matrix);
-   if(k===0)col.setHSL(0.36,0.55,0.42+Math.random()*0.12);else col.setHSL(0.09,0.45,0.42+Math.random()*0.18);loads.setColorAt(li++,col)})}}
+function slotFill(za,zb,x,sides,k){/* pallets agora vêm do Excel (Planilha1!G3#) */}
 for(let b=0;b<NB;b++){const x=cols[b].x,W=cols[b].w,sx=W/2.7,cut=cols[b].cut,cutBack=cols[b].cutBack;
  halves.forEach(([za0,zb],hi)=>{if(cut&&hi===0)return;const za=(cutBack&&hi===2)?zb-3*MD:za0;const zc=(za+zb)/2,L=zb-za;
   for(let k=0;k<LV;k++){o.scale.set(sx,1,L);o.position.set(x,0.3+k*2.4,zc);o.updateMatrix();beams.setMatrixAt(bi++,o.matrix);
@@ -78,14 +88,48 @@ for(let b=0;b<NB;b++){const x=cols[b].x,W=cols[b].w,sx=W/2.7,cut=cols[b].cut,cut
   o.scale.set(1,1,1);
   for(let j=0;j<=Math.floor(L/2.7);j++)[-(W/2-0.05),W/2-0.05].forEach(dx=>{o.position.set(x+dx,6.3,za+j*MD);o.updateMatrix();ups.setMatrixAt(ui++,o.matrix)})});tun.forEach((zc,ti)=>{if(cut&&ti===0)return;o.scale.set(sx,1,TN);for(let k=2;k<LV;k++){o.scale.set(sx,1,TN);o.position.set(x,0.3+k*2.4,zc);o.updateMatrix();beams.setMatrixAt(bi++,o.matrix);if(k<LV-1){const sides=W>2?[-0.68,0.68]:[0];slotFill(zc-TN/2,zc+TN/2,x,sides,k)}}o.scale.set(1,1,1)})}
 ups.count=ui;beams.count=bi;loads.count=li;
-[beams,loads,ups].forEach(m=>{m.instanceMatrix.needsUpdate=true;S.add(m)});loads.instanceColor.needsUpdate=true;
+[beams,loads,ups].forEach(m=>{m.instanceMatrix.needsUpdate=true;S.add(m)});if(loads.instanceColor)loads.instanceColor.needsUpdate=true;
+
+// ================= DADOS DO EXCEL (Planilha1!G3#) =================
+// Colunas: 0 Endereço|1 Tipo|2 Rua|3 Prédio|4 Lado|5 Nível|6 Sala|7 Status|8 Cód|9 Produto|10 Linha|11 Validade
+//          12 X|13 Y|14 Z|15 Larg|16 Alt|17 Prof|18 Cor
+let ULT=[],VIS=[];
+const pos=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0xffffff}),20000);
+pos.count=0;S.add(pos);
+function aplicarDados(rows){
+ ULT=rows||[];const fs=document.getElementById('fs').value,fr=document.getElementById('fr').value;
+ VIS=ULT.filter(r=>(!fs||r[7]===fs)&&(!fr||String(r[2])===fr));
+ const cnt={};let i=0;
+ VIS.forEach(r=>{if(i>=20000)return;
+  o.position.set(+r[12],+r[13],+r[14]);o.scale.set(+r[15]*0.95,+r[16]*0.95,+r[17]*0.95);o.updateMatrix();
+  pos.setMatrixAt(i,o.matrix);col.set(r[18]||'#9E9E9E');pos.setColorAt(i++,col);cnt[r[7]]=(cnt[r[7]]||0)+1});
+ pos.count=i;pos.instanceMatrix.needsUpdate=true;if(pos.instanceColor)pos.instanceColor.needsUpdate=true;
+ document.getElementById('cnt').textContent=i.toLocaleString('pt-BR')+' posições · '+Object.entries(cnt).map(([k,v])=>k+': '+v.toLocaleString('pt-BR')).join(' · ');
+ dirty=1}
+function montarFiltroRuas(){const fr=document.getElementById('fr');if(fr.options.length>1)return;
+ [...new Set(ULT.map(r=>r[2]))].sort((a,b)=>a-b).forEach(v=>{const op=document.createElement('option');op.value=String(v);op.textContent=String(v).padStart(3,'0');fr.appendChild(op)})}
+async function carregarDoExcel(){
+ if(!(window.Office&&window.Excel)){alert('Abra este arquivo como suplemento no Excel ou use o botão CSV.');return}
+ await Excel.run(async ctx=>{const r=ctx.workbook.worksheets.getItem('Planilha1').getRange('G3').getSpillingToRange();
+  r.load('values');await ctx.sync();ULT=r.values.slice(1);montarFiltroRuas();aplicarDados(ULT)})}
+function lerCSV(f){if(!f)return;const rd=new FileReader();rd.onload=()=>{
+ const t=rd.result.replace(/^\uFEFF/,'');const sep=(t.split('\n')[0].match(/;/g)||[]).length>0?';':',';
+ const L=t.split(/\r?\n/).filter(x=>x.trim()).slice(1).map(l=>l.split(sep).map(v=>/^-?\d+,\d+$/.test(v)?v.replace(',','.'):v));
+ ULT=L;montarFiltroRuas();aplicarDados(ULT)};rd.readAsText(f,'utf-8')}
+// clique em uma posição -> detalhes
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let down=null;
+function detalhe(e){const b=R.domElement.getBoundingClientRect();mv.set((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1);
+ ray.setFromCamera(mv,C);const h=ray.intersectObject(pos)[0];const box_=document.getElementById('sel');
+ if(!h){box_.style.display='none';return}const r=VIS[h.instanceId];
+ const vl=r[11]?(typeof r[11]==='number'?new Date(Math.round((r[11]-25569)*864e5)).toLocaleDateString('pt-BR',{timeZone:'UTC'}):r[11]):'-';
+ box_.innerHTML='<b>'+r[0]+'</b> ('+r[1]+')<br>Rua '+r[2]+' · Prédio '+r[3]+' · Nível '+r[5]+' · Sala '+r[6]+'<br>Status: <b style="color:'+r[18]+'">'+r[7]+'</b><br>'+(r[8]?('Cód '+r[8]+' – '+r[9]+'<br>Linha: '+r[10]+'<br>Validade: '+vl):'Sem produto');box_.style.display='block'}
 // controle orbital simples
 let th=0.7,ph=0.9,ds=230,T=new THREE.Vector3(),dirty=1;
 function V(a,b,c,x,y,z){th=a;ph=b;ds=c;T.set(x,y,z);dirty=1}
 function upd(){C.position.set(T.x+ds*Math.sin(ph)*Math.sin(th),T.y+ds*Math.cos(ph),T.z+ds*Math.sin(ph)*Math.cos(th));C.lookAt(T)}
 const el=R.domElement,ptr=new Map();let pd=0;
-el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);ptr.set(e.pointerId,e)});
-el.addEventListener('pointerup',e=>{ptr.delete(e.pointerId);pd=0});
+el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);ptr.set(e.pointerId,e);down=[e.clientX,e.clientY]});
+el.addEventListener('pointerup',e=>{ptr.delete(e.pointerId);pd=0;if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])<5)detalhe(e);down=null});
 el.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;
  if(ptr.size===2){const [a,b]=[...ptr.values()];const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);if(pd)ds=Math.max(15,Math.min(900,ds*pd/d));pd=d}
  else if(e.shiftKey||e.buttons===2){const k=ds*0.0016;T.x-=(e.clientX-p.clientX)*k*Math.cos(th);T.z+=(e.clientX-p.clientX)*k*Math.sin(th);T.x-=(e.clientY-p.clientY)*k*Math.sin(th);T.z-=(e.clientY-p.clientY)*k*Math.cos(th)}
@@ -95,5 +139,7 @@ el.addEventListener('wheel',e=>{e.preventDefault();ds=Math.max(15,Math.min(900,d
 el.addEventListener('contextmenu',e=>e.preventDefault());
 function rs(){R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix();dirty=1}
 addEventListener('resize',rs);rs();
+if(window.Office)Office.onReady(i=>{if(i.host===Office.HostType.Excel){carregarDoExcel();
+ Excel.run(async ctx=>{ctx.workbook.worksheets.getItem('PULMAO').onChanged.add(()=>{clearTimeout(window._t);window._t=setTimeout(carregarDoExcel,3000)});await ctx.sync()}).catch(()=>{})}});
 (function loop(){requestAnimationFrame(loop);if(dirty){upd();R.render(S,C);dirty=0}})();
 </script></body></html>
