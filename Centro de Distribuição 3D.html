@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Centro de Distribuição 3D</title>
+<style>
+:root{--bg:#eef1f4;--fg:#1b2430;--card:#ffffffd9;--bd:#c9d1da;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a21;--fg:#e6ebf0;--card:#1e2731d9;--bd:#33404d}}
+:root[data-theme="dark"]{--bg:#141a21;--fg:#e6ebf0;--card:#1e2731d9;--bd:#33404d}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.p{position:absolute;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;font-size:12.5px;backdrop-filter:blur(6px)}
+#info{left:10px;top:calc(10px + env(safe-area-inset-top,0px));max-width:230px}
+#info b{font-size:14px}
+#leg{left:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+#leg div{display:flex;align-items:center;gap:7px;margin:3px 0}
+#leg i{width:12px;height:12px;border-radius:3px;display:inline-block}
+#bt{right:10px;top:calc(10px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:6px}
+button{font:inherit;padding:7px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);cursor:pointer}
+button:hover{border-color:#3b82f6}
+</style></head><body>
+<div id="info" class="p"><b>Centro de Distribuição</b><br>100 × 140 m · pé-direito 15 m<br>14.000 m² · 14 docas na fachada frontal<br>(9 recebimento · 5 expedição)<br>14 ruas · 3 montantes (11·12·14 módulos) · 2 pallets por<br>módulo, dos 2 lados · nível 1 = picking em todas as ruas<br>recorte de 11 módulos na rua 14 e na parede leste ao lado<br>túneis com módulos a partir do nível 3<br>recebimento e conferência unificados · expedição com a<br>mesma profundidade · sala central divide os dois · ambas<br>recuadas 3 m das estantes · racks com vigas, estrutura e pallets<br>docas espaçadas 5 m entre si, próximas da sala · ≈ 16 mil posições<br><small>Arraste: girar · Roda/pinça: zoom · Shift+arrastar: mover</small></div>
+<div id="leg" class="p">
+<div><i style="background:#3b82f6"></i>Recebimento e conferência (9 docas)</div>
+<div><i style="background:#a16207"></i>Armazenagem porta-paletes</div>
+<div><i style="background:#a78bfa"></i>Túneis (1,5 módulo)</div>
+<div><i style="background:#22c55e"></i>Nível 1: picking/apanha (todas as ruas)</div>
+<div><i style="background:#f97316"></i>Expedição (5 docas)</div>
+<div><i style="background:#14b8a6"></i>Sala central (3,5 × 12 m)</div>
+</div>
+<div id="bt" class="p">
+<button onclick="V(0.7,0.9,230,0,0,0)">Vista aérea</button>
+<button onclick="V(0,1.1,150,0,0,60)">Docas sul</button>
+<button onclick="V(0.3,1.45,50,-20,6,10)">Interno</button>
+<button onclick="toggleRoof()" id="rb">Mostrar telhado</button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const R=new THREE.WebGLRenderer({antialias:true,alpha:true});R.setPixelRatio(Math.min(devicePixelRatio,2));document.body.prepend(R.domElement);
+const S=new THREE.Scene(),C=new THREE.PerspectiveCamera(45,1,1,3000);
+S.add(new THREE.HemisphereLight(0xffffff,0x778899,0.85));
+const D=new THREE.DirectionalLight(0xffffff,0.7);D.position.set(150,300,120);S.add(D);
+const M=(c,o)=>new THREE.MeshLambertMaterial(Object.assign({color:c},o||{}));
+function box(w,h,d,x,y,z,m,p){const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);b.position.set(x,y,z);(p||S).add(b);return b}
+function zone(z0,z1,c,x0,x1){x0=x0??-120;x1=x1??120;box(x1-x0,0.1,z1-z0,(x0+x1)/2,0.06,(z0+z1)/2,M(c))}
+// terreno
+box(700,0.2,700,0,-0.15,0,M(0x8a949e));
+box(100,0.2,140,0,0,0,M(0xb9c0c7));
+box(160,0.1,60,0,-0.05,100,M(0x555c64));
+// zonas
+zone(42,70,0x3b82f6,-50,12.45);zone(42,70,0xf97316,15.95,50);
+box(3.5,3.2,12,14.2,1.6,64,M(0x14b8a6));box(3.7,0.2,12.2,14.2,3.3,64,M(0x0f766e));
+// paredes
+const wm=M(0xdfe6ee,{transparent:true,opacity:0.22,side:THREE.DoubleSide});
+box(100,15,0.5,0,7.5,70,wm);box(100,15,0.5,0,7.5,-70,wm);box(0.5,15,140,50,7.5,0,wm);box(0.5,15,140,-50,7.5,0,wm);
+// telhado
+const roof=box(100,0.6,140,0,15.3,0,M(0xcfd6dd,{transparent:true,opacity:0.6}));roof.visible=false;
+function toggleRoof(){roof.visible=!roof.visible;rb.textContent=roof.visible?'Ocultar telhado':'Mostrar telhado';dirty=1}
+// docas e caminhões
+const dm=M(0x1f2937),tm=M(0xf1f5f9),cm=M(0x2563eb),cm2=M(0xea580c);
+const rd=[...Array(9)].map((_,i)=>[-29.5+i*5,cm]),sd=[...Array(5)].map((_,i)=>[18+i*5,cm2]);
+[...rd,...sd].forEach(([x,c],i)=>{box(3.2,4.6,0.7,x,2.3,70,dm);
+ if(i!==3&&i!==11){const t=new THREE.Group();box(2.8,3.6,14,0,2.4,0,tm,t);box(2.8,2.8,3,0,1.9,8.5,c,t);t.position.set(x,0,78);S.add(t)}});
+// apoio (escritórios, 2 pavimentos)
+
+// porta-paletes
+const LV=6,MD=2.7,TN=1.5*MD,halves=[],tun=[];{let z=39;[11,12,14].forEach((n,i)=>{halves.push([z-n*MD,z]);z-=n*MD;if(i<2){box(99,0.12,TN,0,0.09,z-TN/2,M(0xa78bfa));tun.push(z-TN/2);z-=TN}})}
+const cols=[{x:-49.075,w:1.35}];for(let b=0;b<13;b++)cols.push({x:(b-6)*7.107,w:2.7,cut:b===12});cols.push({x:49.075,w:1.35,cut:true});const NB=cols.length;
+const beams=new THREE.InstancedMesh(new THREE.BoxGeometry(2.7,0.14,1),M(0xf97316),NB*(3*LV+8));
+const PW=MD/2;
+const loads=new THREE.InstancedMesh(new THREE.BoxGeometry(1.1,1.7,1.15),M(0xffffff),20000);
+const ups=new THREE.InstancedMesh(new THREE.BoxGeometry(0.12,12.6,0.12),M(0x1d4ed8),NB*2*34*2);
+const o=new THREE.Object3D(),col=new THREE.Color();let bi=0,li=0,ui=0;
+function slotFill(za,zb,x,sides,k){const n=Math.round((zb-za)/PW);for(let s=0;s<n;s++){const zc=za+(s+0.5)*PW;sides.forEach(dx=>{o.scale.set(1,1,1);o.position.set(x+dx,0.3+k*2.4+(k===0?0.72:0.92),zc);o.updateMatrix();loads.setMatrixAt(li,o.matrix);
+   if(k===0)col.setHSL(0.36,0.55,0.42+Math.random()*0.12);else col.setHSL(0.09,0.45,0.42+Math.random()*0.18);loads.setColorAt(li++,col)})}}
+for(let b=0;b<NB;b++){const x=cols[b].x,W=cols[b].w,sx=W/2.7,cut=cols[b].cut,cutBack=cols[b].cutBack;
+ halves.forEach(([za0,zb],hi)=>{if(cut&&hi===0)return;const za=(cutBack&&hi===2)?zb-3*MD:za0;const zc=(za+zb)/2,L=zb-za;
+  for(let k=0;k<LV;k++){o.scale.set(sx,1,L);o.position.set(x,0.3+k*2.4,zc);o.updateMatrix();beams.setMatrixAt(bi++,o.matrix);
+   if(k<LV-1){const sides=W>2?[-0.68,0.68]:[0];slotFill(za,zb,x,sides,k)}}
+  o.scale.set(1,1,1);
+  for(let j=0;j<=Math.floor(L/2.7);j++)[-(W/2-0.05),W/2-0.05].forEach(dx=>{o.position.set(x+dx,6.3,za+j*MD);o.updateMatrix();ups.setMatrixAt(ui++,o.matrix)})});tun.forEach((zc,ti)=>{if(cut&&ti===0)return;o.scale.set(sx,1,TN);for(let k=2;k<LV;k++){o.scale.set(sx,1,TN);o.position.set(x,0.3+k*2.4,zc);o.updateMatrix();beams.setMatrixAt(bi++,o.matrix);if(k<LV-1){const sides=W>2?[-0.68,0.68]:[0];slotFill(zc-TN/2,zc+TN/2,x,sides,k)}}o.scale.set(1,1,1)})}
+ups.count=ui;beams.count=bi;loads.count=li;
+[beams,loads,ups].forEach(m=>{m.instanceMatrix.needsUpdate=true;S.add(m)});loads.instanceColor.needsUpdate=true;
+// controle orbital simples
+let th=0.7,ph=0.9,ds=230,T=new THREE.Vector3(),dirty=1;
+function V(a,b,c,x,y,z){th=a;ph=b;ds=c;T.set(x,y,z);dirty=1}
+function upd(){C.position.set(T.x+ds*Math.sin(ph)*Math.sin(th),T.y+ds*Math.cos(ph),T.z+ds*Math.sin(ph)*Math.cos(th));C.lookAt(T)}
+const el=R.domElement,ptr=new Map();let pd=0;
+el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);ptr.set(e.pointerId,e)});
+el.addEventListener('pointerup',e=>{ptr.delete(e.pointerId);pd=0});
+el.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;
+ if(ptr.size===2){const [a,b]=[...ptr.values()];const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);if(pd)ds=Math.max(15,Math.min(900,ds*pd/d));pd=d}
+ else if(e.shiftKey||e.buttons===2){const k=ds*0.0016;T.x-=(e.clientX-p.clientX)*k*Math.cos(th);T.z+=(e.clientX-p.clientX)*k*Math.sin(th);T.x-=(e.clientY-p.clientY)*k*Math.sin(th);T.z-=(e.clientY-p.clientY)*k*Math.cos(th)}
+ else{th-=(e.clientX-p.clientX)*0.006;ph=Math.max(0.05,Math.min(1.52,ph-(e.clientY-p.clientY)*0.006))}
+ ptr.set(e.pointerId,e);dirty=1});
+el.addEventListener('wheel',e=>{e.preventDefault();ds=Math.max(15,Math.min(900,ds*(1+e.deltaY*0.001)));dirty=1},{passive:false});
+el.addEventListener('contextmenu',e=>e.preventDefault());
+function rs(){R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix();dirty=1}
+addEventListener('resize',rs);rs();
+(function loop(){requestAnimationFrame(loop);if(dirty){upd();R.render(S,C);dirty=0}})();
+</script></body></html>
